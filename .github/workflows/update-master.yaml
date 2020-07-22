@@ -1,0 +1,55 @@
+name: Generate README
+on:
+  push:
+    branches:
+      - internal
+  schedule:
+    - cron: 0 0 * * *
+jobs:
+  generate-readme:
+    name: Generate README
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Checkout master
+        uses: actions/checkout@v2.3.1
+        with:
+          ref: master
+          path: ./master
+
+      - name: Checkout internal
+        uses: actions/checkout@v2.3.1
+        with:
+          ref: internal
+          path: ./internal
+
+      - name: Build README
+        run: |
+          cd $GITHUB_WORKSPACE/internal;
+          python main.py > README.md
+
+      - name: Copy and commit
+        env:
+          GIT_EMAIL: 68628393+thproxy@users.noreply.github.com
+          GIT_NAME: thproxy
+        run: |
+          cp -r $GITHUB_WORKSPACE/internal/README.md $GITHUB_WORKSPACE/master/README.md;
+
+          cd $GITHUB_WORKSPACE/internal;
+          cd $GITHUB_WORKSPACE/master;
+
+          git config user.email $GIT_EMAIL;
+          git config user.name $GIT_NAME;
+
+          git add .;
+          git commit -m "regenerated";
+          git push;
